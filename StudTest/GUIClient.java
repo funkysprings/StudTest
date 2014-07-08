@@ -32,12 +32,19 @@ public class GUIClient {
 	}
 	
 	private void connectToServer() throws IOException {
-		System.out.println("The client is connecting...");
+		System.out.println("The client is connecting...");//
 		socket = new Socket("localhost", 1080);
 		in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         out = new PrintWriter(socket.getOutputStream(), true);
-
-		//socket.close();
+        
+        System.out.println("Writing student info...");//
+        try {
+			this.getStudentInfo();
+		} catch (InterruptedException e) {
+			System.out.println("Something interrupted me! -> " + e.getMessage());
+			socket.close();
+		}
+		socket.close();
 	}
 	
 	private void createInfoPanel() {	
@@ -128,6 +135,13 @@ public class GUIClient {
 		MFrame.setVisible(true);
 	}
 	
+	private void getStudentInfo() throws InterruptedException {
+		String info = this.textF_name.getText() + "\n" + this.textF_surname.getText() + "\n" + this.textF_group.getText() + "\n";
+		out.write(info);
+		out.flush();
+		out.wait();
+	}
+	
 	@SuppressWarnings("deprecation")
 	private void ButtonOK_studInfoActionPerfomed(ActionEvent e) {
 		textF_name.enable(false);
@@ -154,6 +168,26 @@ public class GUIClient {
 		//this.askQuestion(idStudent, num_of_questions);
 	}
 	
+	private void BOK_ToAnswerActionPerformed(ActionEvent arg0) {
+		/*int n_answer = 0;
+		for (int i = 0 ; i < rbs.length ; i++) {
+			if (rbs[i].isSelected()) {
+				n_answer = i;	//номер ответа
+				break;
+			}
+    	}
+    		long PastTime = System.currentTimeMillis() - stud_st.getStartTimeAnswering(); //конец отсчета времени ввода ответа
+    		String timePast = Double.toString(PastTime/1000.0) + "s";
+    		//добавляем данные ответа студента на вопрос
+    		if (super.AddInfoToProtocolFile(idStudent, stud_st.getIdAnswerStudent(), n_answer, curr_question, timePast)) {
+    			stud_st.setStudentMark(stud_st.getStudentMark() + 1);;
+    			db.updateStudentMarkIntoProtocol(idStudent, stud_st.getStudentMark());
+    		}
+    		stud_st.getNQuestions().add(curr_question);
+    		stud_st.setIdAnswerStudent(stud_st.getIdAnswerStudent() + 1);
+			this.askQuestion(idStudent, num_of_questions);*/
+	}
+	
 	@SuppressWarnings("deprecation")
 	protected void EndTest() {
 		MFrame.hide();
@@ -168,7 +202,6 @@ public class GUIClient {
 		finalPanel.setBorder(BorderFactory.createTitledBorder("RESULTS:"));
 		
 		this.createFinalFrame(finalPanel);
-		super.db.endConnection();
 	}
 	
 	private void createFinalFrame(JPanel finalPanel) {

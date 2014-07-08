@@ -1,13 +1,13 @@
 import java.util.Random;
-
 import java.io.*;
-
 import java.net.ServerSocket;
 import java.net.Socket;
 
-public class GUIServer {
+public class GUIServer extends Thread {
 	private SQLiteDB db;
 	private Socket socket;
+	private BufferedReader in;
+	private PrintWriter out;
 	private StudentStorage stud_st;
 	private int numQuestions;
 	private int curr_question;//??
@@ -36,6 +36,14 @@ public class GUIServer {
     	db = new SQLiteDB(db_name, is_created);
     }
 
+    public void run() {
+    	try {
+			this.runServer(1, 5);//?!
+		} catch (IOException e) {
+			System.out.println("Couldnt run server: " + e.getMessage());
+		}
+    }
+    
     /**
      * Проводим анализ файла с ответами: считываем файл с ответами, создаем объект TestAnswers и добавляем в него информацию про номер ответа(вопроса) и сам ответ, записываем объект TestAnswers в таблицу БД с ответами
      * @param TestAnswers файл с ответами
@@ -130,7 +138,18 @@ public class GUIServer {
     	in = new BufferedReader(
                 new InputStreamReader(socket.getInputStream()));
         out = new PrintWriter(socket.getOutputStream(), true);
-
+        
+        this.goTesting();
+        //this.endTesting();
+    }
+    
+    private void goTesting() throws IOException {
+    	String Name = in.readLine();
+    	String Surname = in.readLine();
+    	String Group = in.readLine();
+    	this.db.insertDataStudentIntoProtocol(this.stud_st.getIdStudent(), Name, Surname, Group);
+    	System.out.println("Student info was written.");
+    	in.notify();
     }
     
     public void closeServer() {

@@ -40,14 +40,9 @@ import java.util.Scanner;
     			}
     			StartGuiTesting(test);
     		case "-guics":
-    			GUIClient client;
-    			client = new GUIClient();
-				try {
-					client.StartGuiTesting(1, 5);
-				} catch (Exception e) {
-					System.out.println("An error occured: " + e.getMessage());
-					e.printStackTrace();
-				}
+    			GUIServer server = new GUIServer();
+    			server.start();
+    			GUIClient client = new GUIClient();
     			break;
     		default: System.out.println("Invalid argument(-s) of a command line!");
     	}
