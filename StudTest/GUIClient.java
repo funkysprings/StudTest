@@ -37,9 +37,10 @@ public class GUIClient {
 		in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         out = new PrintWriter(socket.getOutputStream(), true);
         
-        System.out.println("Writing student info...");//
         try {
+            System.out.println("Writing student info...");//
 			this.getStudentInfo();
+			
 		} catch (InterruptedException e) {
 			System.out.println("Something interrupted me! -> " + e.getMessage());
 			socket.close();
@@ -139,7 +140,6 @@ public class GUIClient {
 		String info = this.textF_name.getText() + "\n" + this.textF_surname.getText() + "\n" + this.textF_group.getText() + "\n";
 		out.write(info);
 		out.flush();
-		out.wait();
 	}
 	
 	@SuppressWarnings("deprecation")

@@ -122,6 +122,38 @@ public class GUIServer extends Thread {
     	db.insertOperation(tq);
     }
     
+    private void AddToProtocolFile(int idStudent, String Name, String Surname, String Group, int num_of_questions_to_ask){
+    	if (db.isExistsProtocol(idStudent)) {
+    		db.deleteStatementProtocol(idStudent);
+    	} else {
+    		db.createTableProtocol(num_of_questions_to_ask);
+    	}
+    	db.insertDataStudentIntoProtocol(idStudent, Name, Surname, Group);
+    }
+    
+	@SuppressWarnings("deprecation")
+	private void askQuestion() {
+			String qa = "";
+	    	Random rand = new Random();
+	    	int num_rows = this.db.countRowsQuestions();
+    		tq = new TestQuestion();
+    		while (true) {
+    			curr_question = rand.nextInt(num_rows);
+    			if (curr_question != 0 && !stud_st.getNQuestions().contains(curr_question))
+    				break;
+    		}
+    		qa = qa + this.db.selectFromQuestions(curr_question).question + "\n";
+    		int len_var_ans = this.db.selectFromQuestions(curr_question).var_answers.length;
+    		for (int i = 0; i < len_var_ans; i ++) {
+    			qa = qa + db.selectFromQuestions(curr_question).var_answers[i] + "\n";
+    		}
+    		stud_st.getNQuestions().add(curr_question);
+    		stud_st.setIdAnswerStudent(stud_st.getIdAnswerStudent() + 1);
+    		stud_st.setStartTimeAnswering(System.currentTimeMillis()); //начало отсчета времени ввода ответа
+    		out.write(qa);
+    		out.flush();
+	}
+    
     public void runServer(int clientNumber, int num_of_questions) throws IOException {
     	System.out.println("The server was run.");
     	
@@ -140,16 +172,20 @@ public class GUIServer extends Thread {
         out = new PrintWriter(socket.getOutputStream(), true);
         
         this.goTesting();
-        //this.endTesting();
+        //this.endTesting();//stud_st = null;
     }
     
     private void goTesting() throws IOException {
     	String Name = in.readLine();
     	String Surname = in.readLine();
     	String Group = in.readLine();
-    	this.db.insertDataStudentIntoProtocol(this.stud_st.getIdStudent(), Name, Surname, Group);
+    	this.AddToProtocolFile(this.stud_st.getIdStudent(), Name, Surname, Group, this.numQuestions);
     	System.out.println("Student info was written.");
-    	in.notify();
+    	while (this.stud_st.getIdAnswerStudent() != this.numQuestions) {
+        	this.askQuestion();
+        	in.readLine(); //ждем ответа от студента на вопрос
+    	}
+		
     }
     
     public void closeServer() {
