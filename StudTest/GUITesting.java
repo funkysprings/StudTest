@@ -1,6 +1,5 @@
 import java.awt.*;        // Using AWT container and component classes
 import java.awt.event.*;  // Using AWT event classes and listener interfaces
-import java.util.ArrayList;
 import java.util.Random;
 
 import javax.swing.*;
@@ -16,9 +15,9 @@ public class GUITesting extends Testing{//  extends Frame {// implements ActionL
 	private TextField textF_surname;
 	private TextField textF_group;
 	private JRadioButton[] rbs;
-	private StudentStorage stud_st;
+	private StudentStorage stud_st;//
 	private ButtonGroup RBAnswer;
-	private int curr_question;//??
+	private int curr_question;//
 	
 	public GUITesting(String db_name, boolean is_created) {
 		super(db_name, is_created);
@@ -33,8 +32,8 @@ public class GUITesting extends Testing{//  extends Frame {// implements ActionL
 		//	@Override
 		//	public void run() {
 				stud_st = new StudentStorage();
-				stud_st.n_question = new ArrayList<Integer>();
-		    	stud_st.idAnswerStudent = 0;
+				stud_st.initNQuestions();
+		    	stud_st.setIdAnswerStudent(0);
 		    	
 				MFrame = new JFrame("English testing for students.");
 				getStudentInfo(idStudent, num_of_questions);
@@ -145,8 +144,8 @@ public class GUITesting extends Testing{//  extends Frame {// implements ActionL
 		} catch (Exception e1) {
 			e1.printStackTrace();
 		}
-		stud_st.student_mark = 0;
-    	super.db.updateStudentMarkIntoProtocol(idStudent, stud_st.student_mark);
+		stud_st.setStudentMark(0);
+    	super.db.updateStudentMarkIntoProtocol(idStudent, stud_st.getStudentMark());
 		this.askQuestion(idStudent, num_of_questions);
 	}
 	
@@ -158,21 +157,21 @@ public class GUITesting extends Testing{//  extends Frame {// implements ActionL
 				break;
 			}
     	}
-    		long PastTime = System.currentTimeMillis() - stud_st.StartTime; //конец отсчета времени ввода ответа
+    		long PastTime = System.currentTimeMillis() - stud_st.getStartTimeAnswering(); //конец отсчета времени ввода ответа
     		String timePast = Double.toString(PastTime/1000.0) + "s";
     		//добавляем данные ответа студента на вопрос
-    		if (super.AddInfoToProtocolFile(idStudent, stud_st.idAnswerStudent, n_answer, curr_question, timePast)) {
-    			stud_st.student_mark++;
-    			db.updateStudentMarkIntoProtocol(idStudent, stud_st.student_mark);
+    		if (super.AddInfoToProtocolFile(idStudent, stud_st.getIdAnswerStudent(), n_answer, curr_question, timePast)) {
+    			stud_st.setStudentMark(stud_st.getStudentMark() + 1);;
+    			db.updateStudentMarkIntoProtocol(idStudent, stud_st.getStudentMark());
     		}
-    		stud_st.n_question.add(curr_question);
-    		stud_st.idAnswerStudent++;
+    		stud_st.getNQuestions().add(curr_question);
+    		stud_st.setIdAnswerStudent(stud_st.getIdAnswerStudent() + 1);
 			this.askQuestion(idStudent, num_of_questions);
 	}
 	
 	@SuppressWarnings("deprecation")
 	private void askQuestion(int idStudent, int num_of_questions) {
-		if (stud_st.idAnswerStudent != num_of_questions) {
+		if (stud_st.getIdAnswerStudent() != num_of_questions) {
 	    	Random rand = new Random();
 	    	int num_rows = super.db.countRowsQuestions();
 	    	
@@ -180,7 +179,7 @@ public class GUITesting extends Testing{//  extends Frame {// implements ActionL
     		tq = new TestQuestion();
     		while (true) {
     			curr_question = rand.nextInt(num_rows);
-    			if (curr_question != 0 && !stud_st.n_question.contains(curr_question))
+    			if (curr_question != 0 && !stud_st.getNQuestions().contains(curr_question))
     				break;
     		}
     		tq.n_question = curr_question;
@@ -191,7 +190,7 @@ public class GUITesting extends Testing{//  extends Frame {// implements ActionL
     			tq.var_answers[i] = db.selectFromQuestions(curr_question).var_answers[i];
     		}
     		this.outputQuestionAndAnswers(tq);
-    		stud_st.StartTime = System.currentTimeMillis(); //начало отсчета времени ввода ответа
+    		stud_st.setStartTimeAnswering(System.currentTimeMillis()); //начало отсчета времени ввода ответа
 		} else {
 			BOK_ToAnswer.enable(false);
 			stud_st = null;
