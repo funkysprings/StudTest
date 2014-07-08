@@ -1,11 +1,15 @@
 import java.util.Random;
+
 import java.io.*;
+
 import java.net.ServerSocket;
 import java.net.Socket;
 
 public class GUIServer {
 	private SQLiteDB db;
+	private Socket socket;
 	private StudentStorage stud_st;
+	private int numQuestions;
 	private int curr_question;//??
 	
  	public GUIServer() {
@@ -110,18 +114,33 @@ public class GUIServer {
     	db.insertOperation(tq);
     }
     
-    public void runServer(int clientNumber, int num_of_questions) {
-		stud_st = new StudentStorage();
+    public void runServer(int clientNumber, int num_of_questions) throws IOException {
+    	System.out.println("The server was run.");
+    	
+    	this.numQuestions = num_of_questions;
+    	stud_st = new StudentStorage();
+    	stud_st.setIdStudent(clientNumber);
 		stud_st.initNQuestions();
     	stud_st.setIdAnswerStudent(0);
     	
+    	ServerSocket listener = new ServerSocket(1080);
+    	System.out.println("Waiting for a client...");
+    	socket = listener.accept();//
+    	System.out.println("The client is connected.");
+    	in = new BufferedReader(
+                new InputStreamReader(socket.getInputStream()));
+        out = new PrintWriter(socket.getOutputStream(), true);
+
+    }
+    
+    public void closeServer() {
+    	this.db.endConnection();
     	try {
-			ServerSocket listener = new ServerSocket(1080);
+			this.socket.close();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
+			System.out.println("Error: Couldn't disconnect from server. Something going wrong!");
 			e.printStackTrace();
 		}
-    	System.out.println("The server was run.");
     }
 
 }

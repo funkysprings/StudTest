@@ -3,8 +3,8 @@ import java.util.ArrayList;
 public class StudentStorage {
 	private int idStudent;
 	private int student_mark;
-	private int idAnswerStudent;
-	private ArrayList<Integer> n_question;
+	private int idAnswerStudent; //количество уже заданных вопросов
+	private ArrayList<Integer> n_question; //список уже заданных вопросов
 	private long startTime;
 	
 	public void setIdStudent(int IdStudent) {

@@ -1,4 +1,5 @@
 import java.io.File;
+import java.io.IOException;
 import java.util.Scanner;
 
 /**
@@ -40,8 +41,13 @@ import java.util.Scanner;
     			StartGuiTesting(test);
     		case "-guics":
     			GUIClient client;
-    			client = new GUIClient(1, 5);
-    			//
+    			client = new GUIClient();
+				try {
+					client.StartGuiTesting(1, 5);
+				} catch (Exception e) {
+					System.out.println("An error occured: " + e.getMessage());
+					e.printStackTrace();
+				}
     			break;
     		default: System.out.println("Invalid argument(-s) of a command line!");
     	}
