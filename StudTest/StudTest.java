@@ -38,6 +38,10 @@ import java.util.Scanner;
     				test = new Testing(db_name,"Test","TestAnswers", is_exist_db);
     			}
     			StartGuiTesting(test);
+    		case "-guics":
+    			GUIClient client;
+    			client = new GUIClient(1, 5);
+    			//
     			break;
     		default: System.out.println("Invalid argument(-s) of a command line!");
     	}
