@@ -2,7 +2,7 @@ import java.sql.*;
 
 /**
  * Класс БД для работы с SQLite
- * @author Misha Yaskov
+ * @author funkysprings
  *
  */
 public class SQLiteDB {

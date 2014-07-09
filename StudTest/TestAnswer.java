@@ -1,6 +1,6 @@
 /**
  * класс для создания объектов для ответов
- * @author Misha Yaskov
+ * @author funkysprings
  *
  */
 public class TestAnswer {

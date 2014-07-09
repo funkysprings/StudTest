@@ -6,7 +6,7 @@ import java.util.Scanner;
 
 /**
  * Класс для тестирование студентов
- * @author Misha Yaskov
+ * @author funkysprings
  */
 public class Testing {
 	

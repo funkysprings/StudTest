@@ -3,11 +3,13 @@ import java.io.IOException;
 import java.util.Scanner;
 
 /**
- * @author Misha Yaskov
+ * @author funkysprings
 */public class StudTest {
 	/** главный вход в программу
 	 * @param args Параметры командной строки -setup: создать пустую БД
-	 * 										  -run: провести тест*/
+	 * 										  -run: провести тест с помощью консолм
+	 * 										  -gui: провести тест с помощью граф. интерфейса
+	 * 										  -guics: провести тест на основе "клиент-сервер"*/
     public static void main(String[] args) {
     	Testing test;
     	String db_name = "test.db";
@@ -40,7 +42,7 @@ import java.util.Scanner;
     			}
     			StartGuiTesting(test);
     		case "-guics":
-    			GUIServer server = new GUIServer();
+    			GUIServer server = new GUIServer(1, 5);
     			server.start();
     			GUIClient client = new GUIClient();
     			break;
@@ -48,6 +50,10 @@ import java.util.Scanner;
     	}
     }
     
+    /**
+     * Начало тестирования с использованием граф. интерфейса.
+     * @param test Объект типа Testing
+     */
     private static void StartGuiTesting(Testing test) {
     	GUITesting gui_test = new GUITesting(test.db.getNameDB(), true);
     	gui_test.StartGUITestStudent(1, 5);//StartGUITestStudent(<ИН студента>, <количество вопросов для студента>)

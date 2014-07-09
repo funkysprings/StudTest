@@ -1,6 +1,6 @@
 
 /**Kласс для создания объектов для вопросов
- * @author Misha Yaskov
+ * @author funkysprings
  */
 public class TestQuestion {
 	/** Номер вопроса */

@@ -3,16 +3,47 @@ import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 
+/**
+ * Класс для создания сервера, запись данных в БД, обработки данных из БД и взаимодействия с клиентом(граф. интерфейс)
+ * @author funkysprings
+ *
+ */
 public class GUIServer extends Thread {
+	/**
+	 * База данных для обработки данных
+	 */
 	private SQLiteDB db;
+	/**
+	 * Сокет для взаимодействия с клиентом
+	 */
 	private Socket socket;
+	/**
+	 * Поток для получения данных от клиента
+	 */
 	private BufferedReader in;
+	/**
+	 * Поток для отправки данных клиенту
+	 */
 	private PrintWriter out;
+	/**
+	 * Информация о текущей успеваемости студента при проведении тестирования
+	 */
 	private StudentStorage stud_st;
+	/**
+	 * Количество задаваемых вопросов
+	 */
 	private int numQuestions;
+	/**
+	 * Текущий номер вопроса
+	 */
 	private int curr_question;//??
 	
- 	public GUIServer() {
+	/**
+	 * Подключение к БД, чтение из файлов и запись в БД
+	 * @param clientNumber ИН клиента
+	 * @param num_of_questions_to_ask Количество задаваемых вопросов
+	 */
+ 	public GUIServer(int clientNumber ,int num_of_questions_to_ask) {
  		boolean is_created = false;
  		File file = new File("test.db"); //файл БД
  		String db_name = file.getName();
@@ -29,24 +60,36 @@ public class GUIServer extends Thread {
     		File TestAnswers = new File(test_answerFile);
     		ParseTestAnswers(TestAnswers);
     	}
+    	this.numQuestions = num_of_questions_to_ask;
+    	stud_st = new StudentStorage();
+    	stud_st.setIdStudent(clientNumber);
  		System.out.println("The server set up successfully.");
  	}
  	
+    /**
+     * Создание и подключение к БД
+     * @param db_name имя БД
+     * @param is_created создана ли уже БД
+     */
     private void createDB(String db_name, boolean is_created) {
     	db = new SQLiteDB(db_name, is_created);
     }
 
+    /**
+     * Метод для запуска потока, запуск сервера
+     */
     @Override
     public void run() {
     	try {
-			this.runServer(1, 5);//?!
+			this.runServer();
 		} catch (IOException e) {
 			System.out.println("Couldnt run server: " + e.getMessage());
 		}
     }
     
     /**
-     * Проводим анализ файла с ответами: считываем файл с ответами, создаем объект TestAnswers и добавляем в него информацию про номер ответа(вопроса) и сам ответ, записываем объект TestAnswers в таблицу БД с ответами
+     * Проводим анализ файла с ответами: считываем файл с ответами, создаем объект TestAnswers и добавляем в него информацию про номер ответа(вопроса) и сам ответ,
+     *  записываем объект TestAnswers в таблицу БД с ответами
      * @param TestAnswers файл с ответами
      *  */
     private void ParseTestAnswers(File TestAnswers) {
@@ -74,7 +117,8 @@ public class GUIServer extends Thread {
     }
     
     /**
-     * Проводим анализ файла с вопросами: считываем файл с ответами, создаем объект TestQuestion и добавляем в него информацию про номер вопроса, вопрос и варианты ответов на вопрос, записываем объект TestQuestion в таблицу БД с вопросами
+     * Проводим анализ файла с вопросами: считываем файл с ответами, создаем объект TestQuestion и добавляем в него информацию про номер вопроса,
+     *  вопрос и варианты ответов на вопрос, записываем объект TestQuestion в таблицу БД с вопросами
      * @param TestFile файл с вопросами
      *  */
     private void ParseTestFile(File TestFile) {
@@ -123,6 +167,12 @@ public class GUIServer extends Thread {
     	db.insertOperation(tq);
     }
     
+    /**
+     * Проведени тестирования: получаем от клиента имя, фамилию и группу студента, запись этих данных в БД.
+     * Пока еще есть вопросы: отправляем клиенту сообщение о том, что вопросы еще есть, получаем вопрос и варианты ответов -> отправляем клиенту.
+     * Ждем от клиента номер ответа на вопрос, считаем время на ответ и добавляем в БД
+     * @throws IOException
+     */
     private void goTesting() throws IOException {
     	String Name = in.readLine();
     	String Surname = in.readLine();
@@ -131,14 +181,12 @@ public class GUIServer extends Thread {
     	this.stud_st.setStudentMark(0);
     	this.db.updateStudentMarkIntoProtocol(this.stud_st.getIdStudent(), this.stud_st.getStudentMark());
     	
-    	char[] cbuf = new char[1]; //выделеяем место под ответ студента
     	int n_answer; //ответ студента
-    	while (this.stud_st.getIdAnswerStudent() != this.numQuestions) { //пока определенное количество вопросов не было задано
-        	this.getQuestion();
-        	n_answer = in.read(cbuf); //ждем ответа от студента на вопрос
-        	cbuf = new char[1];
-        	//out.write(cbuf); //даем знать серверу, что вопросы еще не закончились
-        	//out.flush();
+    	while (this.stud_st.getIdAnswerStudent() < this.numQuestions) { //пока определенное количество вопросов не было задано
+    		out.write(1);
+        	out.flush();
+    		this.getQuestion(); //отправляем вопрос и варианты ответов клиенту
+        	n_answer = in.read(); //ждем ответ от студента на вопрос
         	long PastTime = System.currentTimeMillis() - this.stud_st.getStartTimeAnswering(); //конец отсчета времени ввода ответа
         	String timePast = Double.toString(PastTime/1000.0) + "s";
         	//добавляем данные ответа студента на вопрос
@@ -146,9 +194,18 @@ public class GUIServer extends Thread {
         		this.stud_st.setStudentMark(stud_st.getStudentMark() + 1);;
         		this.db.updateStudentMarkIntoProtocol(this.stud_st.getIdStudent(), this.stud_st.getStudentMark());
         	}
+    		stud_st.setIdAnswerStudent(stud_st.getIdAnswerStudent() + 1);
     	}
     }
     
+    /**
+     * Создаем таблицу протокол и добавляем данные о студенте в таблицу протокол
+     * @param idStudent ИН студента
+     * @param Name Имя студента
+     * @param Surname Фамилия студента
+     * @param Group Группа студента
+     * @param num_of_questions_to_ask количество вопросов для ответа
+     *  */
     private void AddToProtocolFile(int idStudent, String Name, String Surname, String Group, int num_of_questions_to_ask){
     	if (db.isExistsProtocol(idStudent)) {
     		db.deleteStatementProtocol(idStudent);
@@ -159,7 +216,9 @@ public class GUIServer extends Thread {
     }
     
     /**
-     * Добавляем информацию об ответе студента в таблицу с протоколом: лексически сравниваем ответ на вопрос из таблицы БД с ответами с ответом студента, если ответ верный в таблицу БД протокол записывается: "true <answer> <timePast>", иначе "false <answer> <timePast>"
+     * Добавляем информацию об ответе студента в таблицу с протоколом:
+     *  лексически сравниваем ответ на вопрос из таблицы БД с ответами с ответом студента,
+     *  и если ответ верный в таблицу БД протокол записывается: "true <answer> <timePast>", иначе "false <answer> <timePast>"
      * @param idStudent ИН студента
      * @param idAnswerStud порядковый номер вопроса студента для ответа
      * @param AnswerStud Ответ студента
@@ -192,6 +251,10 @@ public class GUIServer extends Thread {
     	db.deleteStatementProtocol(idStud);
     }
     
+    /**
+     * Получаем вопрос и варианты ответов на него.
+     * Отправляем вопрос и ответы клиенту.
+     */
 	private void getQuestion() {
 			String qa = "";
 	    	Random rand = new Random();
@@ -207,24 +270,26 @@ public class GUIServer extends Thread {
     			qa = qa + db.selectFromQuestions(curr_question).var_answers[i] + "\n";
     		}
     		stud_st.getNQuestions().add(curr_question);
-    		stud_st.setIdAnswerStudent(stud_st.getIdAnswerStudent() + 1);
     		stud_st.setStartTimeAnswering(System.currentTimeMillis()); //начало отсчета времени ввода ответа
     		out.write(qa);
     		out.flush();
 	}
     
-    public void runServer(int clientNumber, int num_of_questions) throws IOException {
+	/**
+	 * Запуск сервера: создаем подключение, ждем подключения.
+	 * Старт тестирование и окончание тестирования.
+	 * @throws IOException
+	 */
+    public void runServer() throws IOException {
     	System.out.println("The server was run.");
     	
-    	this.numQuestions = num_of_questions;
-    	stud_st = new StudentStorage();
-    	stud_st.setIdStudent(clientNumber);
 		stud_st.initNQuestions();
     	stud_st.setIdAnswerStudent(0);
     	
     	ServerSocket listener = new ServerSocket(1080);
     	System.out.println("Waiting for a client...");
     	socket = listener.accept();//
+    	listener.close();
     	System.out.println("The client is connected.");
     	in = new BufferedReader(
                 new InputStreamReader(socket.getInputStream()));
@@ -236,6 +301,9 @@ public class GUIServer extends Thread {
         this.endTesting();
     }
     
+    /**
+     * Окончание тестирования: отправляем клиенту результаты теста и отключаемся от сервера.
+     */
     private void endTesting() {
     	out.write(this.db.selectAndOutputFromProtocol(this.stud_st.getIdStudent(), this.numQuestions));
     	out.flush();
@@ -243,6 +311,9 @@ public class GUIServer extends Thread {
     	this.closeServer();
     }
     
+    /**
+     * Завершение работы с сервером и БД.
+     */
     private void closeServer() {
     	this.db.endConnection();
     	try {
