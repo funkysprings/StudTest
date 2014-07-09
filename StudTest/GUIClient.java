@@ -142,7 +142,7 @@ public class GUIClient {
 	private void getQuestionAndAnswer() {
     	try {
 			String q = in.readLine(); //считываем вопрос
-			for (int i = 0; i < rbs.length; i++) {
+			for (int i = 0; i < rbs.length; i++) { //считываем варианты ответов
 				rbs[i].setText(in.readLine());
 			}
 			rbs[0].setSelected(true);
@@ -194,8 +194,9 @@ public class GUIClient {
         this.getQuestionAndAnswer();
 	}
 	
+	@SuppressWarnings("deprecation")
 	private void BOK_ToAnswerActionPerformed(ActionEvent arg0) throws IOException {
-		if (in.readLine() == null) { //сервер доолжен прислать результаты теста, т.е. тем самым уведомить, что все вопросы уже заданы
+		if (!in.ready()) { //сервер доолжен прислать результаты теста, т.е. тем самым уведомить, что все вопросы уже заданы
 			for (int i = 0 ; i < rbs.length ; i++) {
 				if (rbs[i].isSelected()) {
 					out.write(i);;	//номер ответа
@@ -205,6 +206,7 @@ public class GUIClient {
 			}
 			this.getQuestionAndAnswer();
 		} else {
+			BOK_ToAnswer.enable(false);
 			this.EndTest();
 		}
 	}

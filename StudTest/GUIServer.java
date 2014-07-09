@@ -131,11 +131,14 @@ public class GUIServer extends Thread {
     	this.stud_st.setStudentMark(0);
     	this.db.updateStudentMarkIntoProtocol(this.stud_st.getIdStudent(), this.stud_st.getStudentMark());
     	
-    	char[] cbuf = new char[3]; //выделеяем место под 3 int
+    	char[] cbuf = new char[1]; //выделеяем место под ответ студента
     	int n_answer; //ответ студента
     	while (this.stud_st.getIdAnswerStudent() != this.numQuestions) { //пока определенное количество вопросов не было задано
         	this.getQuestion();
         	n_answer = in.read(cbuf); //ждем ответа от студента на вопрос
+        	cbuf = new char[1];
+        	//out.write(cbuf); //даем знать серверу, что вопросы еще не закончились
+        	//out.flush();
         	long PastTime = System.currentTimeMillis() - this.stud_st.getStartTimeAnswering(); //конец отсчета времени ввода ответа
         	String timePast = Double.toString(PastTime/1000.0) + "s";
         	//добавляем данные ответа студента на вопрос
@@ -227,7 +230,9 @@ public class GUIServer extends Thread {
                 new InputStreamReader(socket.getInputStream()));
         out = new PrintWriter(socket.getOutputStream(), true);
         
+        System.out.println("Go test...");
         this.goTesting();
+        System.out.println("The test ended.");
         this.endTesting();
     }
     
@@ -248,6 +253,7 @@ public class GUIServer extends Thread {
 			System.out.println("Error: Couldn't disconnect from server. Something going wrong!");
 			e.printStackTrace();
 		}
+        System.out.println("The server was closed.");
     }
 
 }
