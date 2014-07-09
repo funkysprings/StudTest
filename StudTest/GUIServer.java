@@ -36,6 +36,7 @@ public class GUIServer extends Thread {
     	db = new SQLiteDB(db_name, is_created);
     }
 
+    @Override
     public void run() {
     	try {
 			this.runServer(1, 5);//?!
@@ -122,6 +123,29 @@ public class GUIServer extends Thread {
     	db.insertOperation(tq);
     }
     
+    private void goTesting() throws IOException {
+    	String Name = in.readLine();
+    	String Surname = in.readLine();
+    	String Group = in.readLine();
+    	this.AddToProtocolFile(this.stud_st.getIdStudent(), Name, Surname, Group, this.numQuestions);
+    	this.stud_st.setStudentMark(0);
+    	this.db.updateStudentMarkIntoProtocol(this.stud_st.getIdStudent(), this.stud_st.getStudentMark());
+    	
+    	char[] cbuf = new char[3]; //выделе€ем место под 3 int
+    	int n_answer; //ответ студента
+    	while (this.stud_st.getIdAnswerStudent() != this.numQuestions) { //пока определенное количество вопросов не было задано
+        	this.getQuestion();
+        	n_answer = in.read(cbuf); //ждем ответа от студента на вопрос
+        	long PastTime = System.currentTimeMillis() - this.stud_st.getStartTimeAnswering(); //конец отсчета времени ввода ответа
+        	String timePast = Double.toString(PastTime/1000.0) + "s";
+        	//добавл€ем данные ответа студента на вопрос
+        	if (this.AddInfoToProtocolFile(this.stud_st.getIdStudent(), this.stud_st.getIdAnswerStudent(), n_answer, curr_question, timePast)) {
+        		this.stud_st.setStudentMark(stud_st.getStudentMark() + 1);;
+        		this.db.updateStudentMarkIntoProtocol(this.stud_st.getIdStudent(), this.stud_st.getStudentMark());
+        	}
+    	}
+    }
+    
     private void AddToProtocolFile(int idStudent, String Name, String Surname, String Group, int num_of_questions_to_ask){
     	if (db.isExistsProtocol(idStudent)) {
     		db.deleteStatementProtocol(idStudent);
@@ -131,12 +155,44 @@ public class GUIServer extends Thread {
     	db.insertDataStudentIntoProtocol(idStudent, Name, Surname, Group);
     }
     
-	@SuppressWarnings("deprecation")
-	private void askQuestion() {
+    /**
+     * ƒобавл€ем информацию об ответе студента в таблицу с протоколом: лексически сравниваем ответ на вопрос из таблицы Ѕƒ с ответами с ответом студента, если ответ верный в таблицу Ѕƒ протокол записываетс€: "true <answer> <timePast>", иначе "false <answer> <timePast>"
+     * @param idStudent »Ќ студента
+     * @param idAnswerStud пор€дковый номер вопроса студента дл€ ответа
+     * @param AnswerStud ќтвет студента
+     * @param n_question Ќомер вопроса
+     * @param TimePast врем€, потраченное на ответ
+     *  */
+    private boolean AddInfoToProtocolFile(int idStudent, int idAnswerStudent, int AnswerStud, int n_question, String TimePast) {
+    	    try {
+    	    	String StudentAnswer = this.db.selectFromQuestions(n_question).var_answers[AnswerStud];
+    	    	if (StudentAnswer.equals(this.db.selectFromAnswers(n_question).answer)) {
+    	    		this.db.updateAnswerStudentIntoProtocol(idStudent, idAnswerStudent , StudentAnswer, 1, TimePast);
+    	    		return true;
+    	    	}
+    	    	else {
+    	    		this.db.updateAnswerStudentIntoProtocol(idStudent, idAnswerStudent , StudentAnswer, 0, TimePast);
+    	    		return false;
+    	    	}
+			} catch (Exception e) {
+				System.out.println("The test was dropped!.");
+				this.DeleteFileProtocol(idStudent);
+				return false;
+			}
+    	}
+    
+    /**
+     * ќчищаем кортеж таблицы "протокол" в случае ошибки программы
+     * @param idStud »Ќ студента
+     *  */
+    private void DeleteFileProtocol(int idStud){
+    	db.deleteStatementProtocol(idStud);
+    }
+    
+	private void getQuestion() {
 			String qa = "";
 	    	Random rand = new Random();
 	    	int num_rows = this.db.countRowsQuestions();
-    		tq = new TestQuestion();
     		while (true) {
     			curr_question = rand.nextInt(num_rows);
     			if (curr_question != 0 && !stud_st.getNQuestions().contains(curr_question))
@@ -172,26 +228,22 @@ public class GUIServer extends Thread {
         out = new PrintWriter(socket.getOutputStream(), true);
         
         this.goTesting();
-        //this.endTesting();//stud_st = null;
+        this.endTesting();
     }
     
-    private void goTesting() throws IOException {
-    	String Name = in.readLine();
-    	String Surname = in.readLine();
-    	String Group = in.readLine();
-    	this.AddToProtocolFile(this.stud_st.getIdStudent(), Name, Surname, Group, this.numQuestions);
-    	System.out.println("Student info was written.");
-    	while (this.stud_st.getIdAnswerStudent() != this.numQuestions) {
-        	this.askQuestion();
-        	in.readLine(); //ждем ответа от студента на вопрос
-    	}
-		
+    private void endTesting() {
+    	out.write(this.db.selectAndOutputFromProtocol(this.stud_st.getIdStudent(), this.numQuestions));
+    	out.flush();
+    	stud_st = null;
+    	this.closeServer();
     }
     
-    public void closeServer() {
+    private void closeServer() {
     	this.db.endConnection();
     	try {
 			this.socket.close();
+			this.in.close();
+			this.out.close();
 		} catch (IOException e) {
 			System.out.println("Error: Couldn't disconnect from server. Something going wrong!");
 			e.printStackTrace();

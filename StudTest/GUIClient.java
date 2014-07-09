@@ -8,7 +8,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.Socket;
-import java.net.InetAddress;
+//import java.net.InetAddress;
 
 public class GUIClient {
 	private BufferedReader in;
@@ -27,7 +27,7 @@ public class GUIClient {
 	private ButtonGroup RBAnswer;
 	
 	public GUIClient() {
-		this.createInfoPanel();//(clientNumber, num_of_questions);
+		this.createInfoPanel();
 		this.createMainFrame();
 	}
 	
@@ -36,18 +36,9 @@ public class GUIClient {
 		socket = new Socket("localhost", 1080);
 		in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         out = new PrintWriter(socket.getOutputStream(), true);
-        
-        try {
-            System.out.println("Writing student info...");//
-			this.getStudentInfo();
-			
-		} catch (InterruptedException e) {
-			System.out.println("Something interrupted me! -> " + e.getMessage());
-			socket.close();
-		}
-		socket.close();
 	}
 	
+	@SuppressWarnings("deprecation")
 	private void createInfoPanel() {	
 		MPanel = new JPanel(new GridLayout(2, 1));
 		JPanel panelInfo = new JPanel();
@@ -97,8 +88,8 @@ public class GUIClient {
 		MPanel.add(panelInfo);
 		//-----------------------------------------------------------------------------------------
 		panelQuestion = new JPanel();
-		/*panelQuestion.setLayout(new GridLayout(5,1));//
-		int len_ans = super.db.selectFromQuestions(1).var_answers.length;//?
+		panelQuestion.setLayout(new GridLayout(5,1));//
+		int len_ans = 4;//super.db.selectFromQuestions(1).var_answers.length;//?
 		RBAnswer = new ButtonGroup();
 		rbs = new JRadioButton[len_ans];
 		for (int i = 0; i < len_ans ; i++) {
@@ -113,7 +104,11 @@ public class GUIClient {
 		ActionListener q_al = new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
-				BOK_ToAnswerActionPerformed(arg0, idStudent, num_of_questions);
+				try {
+					BOK_ToAnswerActionPerformed(arg0);
+				} catch (IOException e) {
+					System.out.println("Error after clicking button : " + e.getMessage());
+				}
 			}
 		};
 		BOK_ToAnswer.addActionListener(q_al);
@@ -122,7 +117,7 @@ public class GUIClient {
 		((FlowLayout)pnlT.getLayout()).setAlignment(FlowLayout.LEFT);
 		panelQuestion.add(pnlT);
 		
-		panelQuestion.hide();*/
+		panelQuestion.hide();
 		MPanel.add(panelQuestion);
 		//-----------------------------------------------------------------------------------------
 		MFrame.add(MPanel);
@@ -142,8 +137,34 @@ public class GUIClient {
 		out.flush();
 	}
 	
+
+    @SuppressWarnings("deprecation")
+	private void getQuestionAndAnswer() {
+    	try {
+			String q = in.readLine(); //считываем вопрос
+			for (int i = 0; i < rbs.length; i++) {
+				rbs[i].setText(in.readLine());
+			}
+			rbs[0].setSelected(true);
+			panelQuestion.setBorder(BorderFactory.createTitledBorder(
+			           BorderFactory.createEtchedBorder(), q));
+			panelQuestion.show();
+		} catch (IOException e) {
+			System.out.println("Couldnt read from server: " + e.getMessage());
+			e.printStackTrace();
+		}
+    }
+    
+    private String getResults() throws IOException {
+    	String results = "";
+    	while(in.readLine() != null) {
+    		results = results + in.readLine();
+    	}
+    	return results;
+    }
+	
 	@SuppressWarnings("deprecation")
-	private void ButtonOK_studInfoActionPerfomed(ActionEvent e) {
+	private void ButtonOK_studInfoActionPerfomed(ActionEvent ae) {
 		textF_name.enable(false);
 		textF_surname.enable(false);
 		textF_group.enable(false);
@@ -158,34 +179,34 @@ public class GUIClient {
 				System.out.println("Couldnt close socket :" + e2.getMessage());
 			}
 		}
-		//try {
-		//	AddToProtocolFile(idStudent, textF_name.getText(), textF_surname.getText(),textF_group.getText(), num_of_questions);
-		//} catch (Exception e1) {
-		//	e1.printStackTrace();
-		//}
-		//stud_st.setStudentMark(0);
-    	//super.db.updateStudentMarkIntoProtocol(idStudent, stud_st.getStudentMark());
-		//this.askQuestion(idStudent, num_of_questions);
+        try {
+            System.out.println("Writing student info...");//
+			this.getStudentInfo();	
+		} catch (InterruptedException e1) {
+			System.out.println("Something interrupted me! -> " + e1.getMessage());
+			try {
+				socket.close();
+			} catch (IOException e2) {
+				System.out.println("Couldnt close socket : " + e2.getMessage());
+			}
+		}
+    	System.out.println("Student info was written.");
+        this.getQuestionAndAnswer();
 	}
 	
-	private void BOK_ToAnswerActionPerformed(ActionEvent arg0) {
-		/*int n_answer = 0;
-		for (int i = 0 ; i < rbs.length ; i++) {
-			if (rbs[i].isSelected()) {
-				n_answer = i;	//номер ответа
-				break;
+	private void BOK_ToAnswerActionPerformed(ActionEvent arg0) throws IOException {
+		if (in.readLine() == null) { //сервер доолжен прислать результаты теста, т.е. тем самым уведомить, что все вопросы уже заданы
+			for (int i = 0 ; i < rbs.length ; i++) {
+				if (rbs[i].isSelected()) {
+					out.write(i);;	//номер ответа
+					out.flush();
+					break;
+				}
 			}
-    	}
-    		long PastTime = System.currentTimeMillis() - stud_st.getStartTimeAnswering(); //конец отсчета времени ввода ответа
-    		String timePast = Double.toString(PastTime/1000.0) + "s";
-    		//добавляем данные ответа студента на вопрос
-    		if (super.AddInfoToProtocolFile(idStudent, stud_st.getIdAnswerStudent(), n_answer, curr_question, timePast)) {
-    			stud_st.setStudentMark(stud_st.getStudentMark() + 1);;
-    			db.updateStudentMarkIntoProtocol(idStudent, stud_st.getStudentMark());
-    		}
-    		stud_st.getNQuestions().add(curr_question);
-    		stud_st.setIdAnswerStudent(stud_st.getIdAnswerStudent() + 1);
-			this.askQuestion(idStudent, num_of_questions);*/
+			this.getQuestionAndAnswer();
+		} else {
+			this.EndTest();
+		}
 	}
 	
 	@SuppressWarnings("deprecation")
@@ -193,15 +214,24 @@ public class GUIClient {
 		MFrame.hide();
 		MFrame.dispose();
 		JPanel finalPanel = new JPanel();
-		
 		JTextArea textArea = new JTextArea();
-		//textArea.setText(super.db.selectAndOutputFromProtocol(idStudent, num_of_questions));
+		
+		try {
+			textArea.setText(this.getResults());
+			socket.close();
+			in.close();
+		} catch (IOException e) {
+			System.out.println("Error IO : " + e.getMessage());
+		}
+		out.close();
+		
 		textArea.setEditable(false);
 		finalPanel.setSize(textArea.getWidth(),textArea.getHeight());
 		finalPanel.add(textArea);
 		finalPanel.setBorder(BorderFactory.createTitledBorder("RESULTS:"));
 		
 		this.createFinalFrame(finalPanel);
+		
 	}
 	
 	private void createFinalFrame(JPanel finalPanel) {
